@@ -1,0 +1,61 @@
+import discord
+from discord.ext import commands
+from discord import FFmpegPCMAudio
+import asyncio
+
+intents = discord.Intents.default()
+intents.messages = True
+
+bot = commands.Bot(command_prefix='!mbot', intents=intents)
+
+youtube_stations = {
+    '1': 'https://youtu.be/-XmImaT5TxM',
+}
+
+def extract_audio(url):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        return info['url']
+
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user.name}')
+
+@bot.command()
+async def join(ctx):
+    print("Join command received.")
+    if ctx.author.voice is None:
+        await ctx.send("You must be in a voice channel to use this command.")
+        return
+
+    channel = ctx.author.voice.channel
+    await channel.connect()
+
+@bot.command()
+async def leave(ctx):
+    if ctx.voice_client is not None:
+        await ctx.voice_client.disconnect()
+
+@bot.command()
+async def play(ctx, station: str):
+    if ctx.voice_client is None:
+        await ctx.send("I'm not connected to a voice channel. Use !join command first.")
+        return
+
+    if station not in youtube_stations:
+        await ctx.send("Invalid station number.")
+        return
+
+    station_url = extract_audio(youtube_stations[station])
+    ctx.voice_client.play(FFmpegPCMAudio(station_url))
+    await ctx.send(f"Now playing station {station}.")
+
+bot.run(token)
